@@ -1,13 +1,19 @@
 package main
 
+import (
+	"context"
+	"fmt"
+	"github.com/tyasheliy/cpass/internal/passcl"
+)
+
 func main() {
-	// init config
+	c := passcl.OsClient{}
+	ctx := context.Background()
 
-	// init logger
+	err := c.InsertOtp(ctx, "test", "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example", passcl.InsertOtpOptions{Force: true})
+	if err != nil {
+		fmt.Println("insert otp error")
+	}
 
-	// create app instance
-
-	// init main window
-
-	// render and run app
+	fmt.Println(c.ShowOtp(ctx, "test"))
 }
