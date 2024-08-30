@@ -73,6 +73,10 @@ func (c *OsClient) InsertOtp(ctx context.Context, passName string, uri string, o
 	return prompt(ctx, "pass", []string{uri, uri}, "otp", "insert", forceFlag, passName)
 }
 
+func (c *OsClient) Remove(ctx context.Context, passName string) error {
+	return run(ctx, "pass", "rm", "-r", "-f", passName)
+}
+
 func run(ctx context.Context, bin string, args ...string) error {
 	cmd := buildCmd(ctx, bin, args...)
 	return osErr(cmd.Run())
@@ -141,9 +145,8 @@ func buildCmdArgsFlags(args ...string) []string {
 func osErr(err error) error {
 	var exitErr *exec.ExitError
 	ok := errors.As(err, &exitErr)
-	if ok {
-		outErr := exitErr.Stderr
-		return errors.New(string(outErr))
+	if ok && exitErr.Stderr != nil {
+		return errors.New(string(exitErr.Stderr))
 	} else {
 		return err
 	}

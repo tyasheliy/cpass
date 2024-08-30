@@ -11,6 +11,7 @@ type Client interface {
 	Show(ctx context.Context, passName string) (string, error)
 	ShowOtp(ctx context.Context, passName string) (string, error)
 	Generate(ctx context.Context, passName string, options GenerateOptions) error
+	Remove(ctx context.Context, passName string) error
 }
 
 type GenerateOptions struct {

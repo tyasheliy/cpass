@@ -2,15 +2,12 @@ package entry
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/tyasheliy/cpass/internal/entity"
 	"github.com/tyasheliy/cpass/internal/infrastructure/file"
 	"github.com/tyasheliy/cpass/internal/passcl"
-)
-
-const (
-	OTP_DIR  = "otp"
-	TODO_DIR = "todo"
+	"path/filepath"
 )
 
 type FileEntryRepository struct {
@@ -29,7 +26,7 @@ func NewFileEntryRepository(
 }
 
 func (r *FileEntryRepository) CreatePassword(ctx context.Context, store *entity.Store, name string, password string) (*entity.Entry, error) {
-	storeDir := r.manager.GetStoreFullName(store)
+	storeDir := r.manager.GetStorePath(store)
 	passName := fmt.Sprintf("%s/%s", storeDir, name)
 	options := passcl.InsertOptions{
 		Force:     false,
@@ -51,7 +48,7 @@ func (r *FileEntryRepository) CreatePassword(ctx context.Context, store *entity.
 }
 
 func (r *FileEntryRepository) GeneratePassword(ctx context.Context, store *entity.Store, name string, gen entity.PasswordGeneration) (*entity.Entry, error) {
-	storeDir := r.manager.GetStoreFullName(store)
+	storeDir := r.manager.GetStorePath(store)
 	passName := fmt.Sprintf("%s/%s", storeDir, name)
 	options := passcl.GenerateOptions{
 		Force:     false,
@@ -74,8 +71,8 @@ func (r *FileEntryRepository) GeneratePassword(ctx context.Context, store *entit
 }
 
 func (r *FileEntryRepository) CreateOtp(ctx context.Context, store *entity.Store, name string, uri string) (*entity.Entry, error) {
-	storeDir := r.manager.GetStoreFullName(store)
-	passName := fmt.Sprintf("%s/%s/%s", storeDir, OTP_DIR, name)
+	storeDir := r.manager.GetStorePath(store)
+	passName := fmt.Sprintf("%s/%s/%s", storeDir, file.OTP_DIR, name)
 	options := passcl.InsertOtpOptions{
 		Force: false,
 	}
@@ -95,8 +92,8 @@ func (r *FileEntryRepository) CreateOtp(ctx context.Context, store *entity.Store
 }
 
 func (r *FileEntryRepository) CreateTodo(ctx context.Context, store *entity.Store, name string, lines []string) (*entity.Entry, error) {
-	storeDir := r.manager.GetStoreFullName(store)
-	passName := fmt.Sprintf("%s/%s/%s", storeDir, TODO_DIR, name)
+	storeDir := r.manager.GetStorePath(store)
+	passName := fmt.Sprintf("%s/%s/%s", storeDir, file.TODO_DIR, name)
 	options := passcl.InsertOptions{
 		Force:     false,
 		MultiLine: true,
@@ -116,27 +113,39 @@ func (r *FileEntryRepository) CreateTodo(ctx context.Context, store *entity.Stor
 	return &entry, nil
 }
 
-func (f *FileEntryRepository) Get(ctx context.Context) ([]*entity.Entry, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *FileEntryRepository) Get(ctx context.Context) ([]*entity.Entry, error) {
+	return r.manager.GetEntries(r.manager.RootPath, nil)
 }
 
-func (f *FileEntryRepository) GetByStore(ctx context.Context, store *entity.Store) ([]*entity.Entry, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *FileEntryRepository) GetByStore(ctx context.Context, store *entity.Store) ([]*entity.Entry, error) {
+	return r.getByStore(ctx, store, nil)
 }
 
-func (f *FileEntryRepository) GetByType(ctx context.Context, store *entity.Store, t entity.EntryType) ([]*entity.Entry, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *FileEntryRepository) GetByType(ctx context.Context, store *entity.Store, t entity.EntryType) ([]*entity.Entry, error) {
+	return r.getByStore(ctx, store, &t)
 }
 
-func (f *FileEntryRepository) GetByName(ctx context.Context, store *entity.Store, name string) (*entity.Entry, error) {
-	//TODO implement me
-	panic("implement me")
+func (r *FileEntryRepository) GetByName(ctx context.Context, store *entity.Store, name string) (*entity.Entry, error) {
+	storePath := r.manager.GetStorePath(store)
+	abs := filepath.Join(r.manager.RootPath, storePath, fmt.Sprintf("%s.gpg", name))
+
+	return r.manager.GetEntryByPath(abs)
 }
 
-func (f *FileEntryRepository) Delete(ctx context.Context, store *entity.Store, name string) error {
-	//TODO implement me
-	panic("implement me")
+func (r *FileEntryRepository) getByStore(ctx context.Context, store *entity.Store, typeFilter *entity.EntryType) ([]*entity.Entry, error) {
+	storePath := r.manager.GetStorePath(store)
+	abs := filepath.Join(r.manager.RootPath, storePath)
+
+	return r.manager.GetEntries(abs, typeFilter)
+}
+
+func (r *FileEntryRepository) Delete(ctx context.Context, store *entity.Store, name string) error {
+	if name == "" {
+		return errors.New("name can not be empty")
+	}
+
+	storePath := r.manager.GetStorePath(store)
+	passName := filepath.Join(storePath, name)
+
+	return r.client.Remove(ctx, passName)
 }

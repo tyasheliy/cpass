@@ -3,17 +3,21 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/tyasheliy/cpass/internal/entity"
+	"github.com/tyasheliy/cpass/internal/infrastructure/file"
+	"github.com/tyasheliy/cpass/internal/infrastructure/repository/entry"
 	"github.com/tyasheliy/cpass/internal/passcl"
 )
 
 func main() {
-	c := passcl.OsClient{}
-	ctx := context.Background()
+	m := file.NewManager("/Users/tyasheliy/.password-store")
+	c := passcl.NewOsClient()
+	r := entry.NewFileEntryRepository(m, c)
 
-	err := c.InsertOtp(ctx, "test", "otpauth://totp/Example:alice@google.com?secret=JBSWY3DPEHPK3PXP&issuer=Example", passcl.InsertOtpOptions{Force: true})
-	if err != nil {
-		fmt.Println("insert otp error")
+	store := &entity.Store{
+		Name:   "test",
+		Parent: nil,
 	}
 
-	fmt.Println(c.ShowOtp(ctx, "test"))
+	fmt.Println(r.Delete(context.Background(), store, "first"))
 }
