@@ -1,6 +1,7 @@
 package file
 
 import (
+	"fmt"
 	"github.com/tyasheliy/cpass/internal/entity"
 	"io/fs"
 	"os"
@@ -13,6 +14,7 @@ const (
 	TODO_DIR = "todo"
 )
 
+// TODO: separate file manager for cqrs
 type Manager struct {
 	RootPath string
 }
@@ -144,4 +146,8 @@ func (m *Manager) GetEntryByPath(path string) (*entity.Entry, error) {
 func (m *Manager) withoutTypeDir(splitDirPath []string) *[]string {
 	without := splitDirPath[:len(splitDirPath)-1]
 	return &without
+}
+
+func (m *Manager) GetPathFromRoot(path string) string {
+	return filepath.FromSlash(fmt.Sprintf("%s/%s", m.RootPath, path))
 }
