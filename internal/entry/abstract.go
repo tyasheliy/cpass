@@ -53,3 +53,15 @@ func FullFileName(entry Entry) string {
 
 	return filepath.Join(FullFileName(entry.Parent()), entry.FileName())
 }
+
+func SplitEntryParents(entry Entry) *Aggregate {
+	return NewAggregate(splitEntryParents(entry)...)
+}
+
+func splitEntryParents(entry Entry) []Entry {
+	if entry.Parent() == nil {
+		return []Entry{entry}
+	}
+
+	return append(splitEntryParents(entry.Parent()), entry)
+}

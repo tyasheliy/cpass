@@ -2,6 +2,7 @@ package entry
 
 import (
 	"context"
+	"github.com/tyasheliy/cpass/internal/passcl"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -9,16 +10,39 @@ import (
 )
 
 type QueryManager struct {
+	client   passcl.Client
 	rootPath string
 }
 
-func NewQueryManager(rootPath string) *QueryManager {
+func NewQueryManager(rootPath string, client passcl.Client) *QueryManager {
 	return &QueryManager{
+		client:   client,
 		rootPath: rootPath,
 	}
 }
 
-func (m *QueryManager) GetDirEntryChildren(ctx context.Context, entry *DirEntry) ([]Entry, error) {
+func (m *QueryManager) GetPassword(ctx context.Context, entry *PasswordEntry) (string, error) {
+	passName := PassName(entry)
+	return m.client.Show(ctx, passName)
+}
+
+func (m *QueryManager) GetOtp(ctx context.Context, entry *OtpEntry) (string, error) {
+	passName := PassName(entry)
+	return m.client.ShowOtp(ctx, passName)
+}
+
+func (m *QueryManager) GetTodoLines(ctx context.Context, entry *TodoEntry) ([]string, error) {
+	passName := PassName(entry)
+
+	rawLines, err := m.client.Show(ctx, passName)
+	if err != nil {
+		return nil, err
+	}
+
+	return strings.Split(rawLines, "\n"), nil
+}
+
+func (m *QueryManager) GetDirEntryChildren(ctx context.Context, entry *DirEntry) (*Aggregate, error) {
 	root := m.getEntryPathFromRoot(entry)
 
 	entries := make([]Entry, 0)
@@ -41,7 +65,7 @@ func (m *QueryManager) GetDirEntryChildren(ctx context.Context, entry *DirEntry)
 		return nil, err
 	}
 
-	return entries, nil
+	return NewAggregate(entries...), nil
 }
 
 func (m *QueryManager) getEntryByPath(rel *DirEntry, path string) Entry {

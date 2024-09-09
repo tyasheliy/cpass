@@ -3,7 +3,7 @@ package mediator
 import "context"
 
 type MessageMediator interface {
-	Register(h Handler) error
+	Register(h Handler)
 	Send(ctx context.Context, msg Message) (any, error)
 }
 

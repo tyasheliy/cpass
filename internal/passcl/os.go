@@ -8,10 +8,19 @@ import (
 	"strconv"
 )
 
-type OsClient struct{}
+type OsClient struct {
+	binPath string
+}
 
-func NewOsClient() *OsClient {
-	return &OsClient{}
+func NewOsClient() (*OsClient, error) {
+	binPath, err := exec.LookPath("pass")
+	if err != nil {
+		return nil, err
+	}
+
+	return &OsClient{
+		binPath: binPath,
+	}, nil
 }
 
 func (c *OsClient) Init(ctx context.Context, subFolder *string, key string) error {
@@ -25,6 +34,7 @@ func (c *OsClient) Init(ctx context.Context, subFolder *string, key string) erro
 }
 
 func (c *OsClient) Show(ctx context.Context, passName string) (string, error) {
+
 	return out(ctx, "pass", "show", passName)
 }
 
@@ -79,7 +89,7 @@ func (c *OsClient) Remove(ctx context.Context, passName string) error {
 
 func run(ctx context.Context, bin string, args ...string) error {
 	cmd := buildCmd(ctx, bin, args...)
-	return osErr(cmd.Run())
+	return OsErr(cmd.Run())
 }
 
 func out(ctx context.Context, bin string, args ...string) (string, error) {
@@ -87,7 +97,7 @@ func out(ctx context.Context, bin string, args ...string) (string, error) {
 
 	rawOut, err := cmd.Output()
 	if err != nil {
-		return "", osErr(err)
+		return "", OsErr(err)
 	}
 
 	return string(rawOut), nil
@@ -98,11 +108,11 @@ func prompt(ctx context.Context, bin string, dataToInput []string, args ...strin
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return osErr(err)
+		return OsErr(err)
 	}
 
 	if err = cmd.Start(); err != nil {
-		return osErr(err)
+		return OsErr(err)
 	}
 
 	for _, input := range dataToInput {
@@ -110,14 +120,14 @@ func prompt(ctx context.Context, bin string, dataToInput []string, args ...strin
 
 		_, err = stdin.Write(byteInput)
 		if err != nil {
-			return osErr(err)
+			return OsErr(err)
 		}
 	}
 
 	_ = stdin.Close()
 
 	if err = cmd.Wait(); err != nil {
-		return osErr(err)
+		return OsErr(err)
 	}
 
 	return nil
@@ -142,7 +152,7 @@ func buildCmdArgsFlags(args ...string) []string {
 	return res
 }
 
-func osErr(err error) error {
+func OsErr(err error) error {
 	var exitErr *exec.ExitError
 	ok := errors.As(err, &exitErr)
 	if ok && exitErr.Stderr != nil {

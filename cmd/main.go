@@ -1,10 +1,13 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"github.com/haroldadmin/pathfix"
 	"github.com/tyasheliy/cpass/internal/entry"
-	"log"
+	"github.com/tyasheliy/cpass/internal/gui"
+	"github.com/tyasheliy/cpass/internal/passcl"
+	entry2 "github.com/tyasheliy/cpass/internal/usecase/entry"
+	"github.com/tyasheliy/cpass/internal/usecase/mediator"
 	"os"
 	"path/filepath"
 )
@@ -12,22 +15,31 @@ import (
 func main() {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
+	}
+
+	err = pathfix.Fix()
+	if err != nil {
+		panic(err)
 	}
 
 	storePath := filepath.Join(homeDir, ".password-store")
 
-	m := entry.NewQueryManager(storePath)
-
-	p := entry.NewDirEntry("test", nil)
-	dir := entry.NewDirEntry("test1", p)
-
-	entries, err := m.GetDirEntryChildren(context.Background(), dir)
+	cl, err := passcl.NewOsClient()
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
 	}
 
-	for _, e := range entries {
-		fmt.Println()
-	}
+	query := entry.NewQueryManager(storePath, cl)
+
+	messageMediator := mediator.NewMessageMediator()
+
+	getQueryHandler := entry2.NewGetEntryQueryManagerHandler(query)
+	messageMediator.Register(getQueryHandler)
+
+	getDirEntryChildrenHandler := entry2.NewGetDirEntryChildrenHandler(query)
+	messageMediator.Register(getDirEntryChildrenHandler)
+
+	app := gui.NewApp(messageMediator)
+	fmt.Println(app.Run())
 }
